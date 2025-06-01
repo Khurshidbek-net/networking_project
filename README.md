@@ -96,3 +96,93 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+# Warehouse Management System
+
+## CI/CD Setup
+
+This project uses GitHub Actions for Continuous Integration and Continuous Deployment. The pipeline includes:
+
+### Continuous Integration (CI)
+- Automated testing
+- Code linting
+- Database migrations
+- Prisma client generation
+
+### Continuous Deployment (CD)
+- Automatic deployment to production when merging to main branch
+- Database migrations
+- Docker container deployment
+
+## Required Secrets
+
+Add the following secrets to your GitHub repository:
+
+- `DATABASE_URL`: Your production database connection string
+- `HEROKU_API_KEY`: Your Heroku API key
+- `HEROKU_APP_NAME`: Your Heroku application name
+- `HEROKU_EMAIL`: Your Heroku email address
+
+## Local Development
+
+1. Clone the repository
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the development environment using Docker:
+```bash
+docker-compose up -d
+```
+
+4. Run database migrations:
+```bash
+npx prisma migrate dev
+```
+
+5. Generate Prisma Client:
+```bash
+npx prisma generate
+```
+
+## Deployment
+
+The application automatically deploys to production when changes are merged into the main branch. The deployment process:
+
+1. Runs all tests
+2. Builds the Docker container
+3. Deploys to Heroku
+4. Runs database migrations
+
+## Manual Deployment
+
+If you need to deploy manually:
+
+```bash
+# Build the Docker image
+docker build -t warehouse-app .
+
+# Run the container
+docker run -p 3000:3000 warehouse-app
+```
+
+## Database Migrations
+
+To create a new migration:
+
+```bash
+npx prisma migrate dev --name your_migration_name
+```
+
+To apply migrations in production:
+
+```bash
+npx prisma migrate deploy
+```
+
+## Monitoring
+
+- CI/CD pipeline status can be monitored in the GitHub Actions tab
+- Production logs can be viewed in your Heroku dashboard
+- Database migration status can be checked using Prisma CLI
