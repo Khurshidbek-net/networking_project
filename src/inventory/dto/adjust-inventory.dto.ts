@@ -1,34 +1,37 @@
-import { IsString, IsInt, IsEnum, IsOptional, Min } from "class-validator"
-import { ApiProperty } from "@nestjs/swagger"
+import { IsString, IsInt, IsEnum, IsOptional, Min } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class AdjustInventoryDto {
-  @ApiProperty({ description: "Product ID" })
+  @ApiProperty({ description: 'Product ID' })
   @IsString()
-  productId: string
+  productId: string;
 
-  @ApiProperty({ description: "Warehouse ID" })
+  @ApiProperty({ description: 'Warehouse ID' })
   @IsString()
-  warehouseId: string
+  warehouseId: string;
 
   @ApiProperty({
-    description: "Adjustment type",
-    enum: ["increase", "decrease", "count"],
+    description: 'Adjustment type',
+    enum: ['increase', 'decrease', 'count'],
   })
-  @IsEnum(["increase", "decrease", "count"])
-  adjustmentType: "increase" | "decrease" | "count"
+  @IsEnum(['increase', 'decrease', 'count'])
+  adjustmentType: 'increase' | 'decrease' | 'count';
 
-  @ApiProperty({ description: "Quantity to adjust", minimum: 0 })
+  @ApiProperty({ description: 'Quantity to adjust', minimum: 0 })
   @IsInt()
   @Min(0)
-  quantity: number
+  quantity: number;
 
-  @ApiProperty({ description: "Reason for adjustment", required: false })
+  @ApiProperty({ description: 'Reason for adjustment', required: false })
   @IsOptional()
   @IsString()
-  reason?: string
+  reason?: string;
 
-  @ApiProperty({ description: "User ID performing adjustment", required: false })
+  @ApiProperty({
+    description: 'User ID performing adjustment',
+    required: false,
+  })
   @IsOptional()
   @IsString()
-  userId?: string
+  userId?: string;
 }

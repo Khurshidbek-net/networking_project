@@ -1,29 +1,29 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
-import { PrismaService } from "../prisma/prisma.service"
-import { CreateInboundShipmentDto } from "./dto/create-inbound-shipment.dto"
-import { UpdateInboundShipmentDto } from "./dto/update-inbound-shipment.dto"
-import { InboundQueryDto } from "./dto/inbound-query.dto"
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateInboundShipmentDto } from './dto/create-inbound-shipment.dto';
+import { UpdateInboundShipmentDto } from './dto/update-inbound-shipment.dto';
+import { InboundQueryDto } from './dto/inbound-query.dto';
 
 @Injectable()
 export class InboundService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async findAll(query: InboundQueryDto) {
-    const { page = 1, limit = 10, search, status } = query || {}
-    const skip = (page - 1) * limit
+    const { page = 1, limit = 10, search, status } = query || {};
+    const skip = (page - 1) * limit;
 
-    const where: any = {}
+    const where: any = {};
 
     if (search) {
       where.OR = [
-        { receivingId: { contains: search, mode: "insensitive" } },
-        { supplierName: { contains: search, mode: "insensitive" } },
-        { poNumber: { contains: search, mode: "insensitive" } },
-      ]
+        { receivingId: { contains: search, mode: 'insensitive' } },
+        { supplierName: { contains: search, mode: 'insensitive' } },
+        { poNumber: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
     if (status) {
-      where.status = status
+      where.status = status;
     }
 
     const [items, total] = await Promise.all([
@@ -38,10 +38,10 @@ export class InboundService {
         },
         skip,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.inboundShipment.count({ where }),
-    ])
+    ]);
 
     return {
       items,
@@ -51,7 +51,7 @@ export class InboundService {
         total,
         pages: Math.ceil(total / limit),
       },
-    }
+    };
   }
 
   async findOne(id: string) {
@@ -68,26 +68,32 @@ export class InboundService {
           },
         },
       },
-    })
+    });
 
     if (!shipment) {
-      throw new NotFoundException(`Inbound shipment with ID ${id} not found`)
+      throw new NotFoundException(`Inbound shipment with ID ${id} not found`);
     }
 
-    return shipment
+    return shipment;
   }
 
   async create(createInboundShipmentDto: CreateInboundShipmentDto) {
-    const { items, ...shipmentData } = createInboundShipmentDto
+    const { items, ...shipmentData } = createInboundShipmentDto;
 
     // Generate receiving ID
-    const receivingId = await this.generateReceivingId()
+    const receivingId = await this.generateReceivingId();
 
     // Calculate totals
-    const totalItems = items.reduce((sum, item) => sum + item.quantityExpected, 0)
-    const totalValue = items.reduce((sum, item) => sum + item.quantityExpected * (item.unitCost || 0), 0)
+    const totalItems = items.reduce(
+      (sum, item) => sum + item.quantityExpected,
+      0,
+    );
+    const totalValue = items.reduce(
+      (sum, item) => sum + item.quantityExpected * (item.unitCost || 0),
+      0,
+    );
 
-    return this.prisma.inboundShipment.create({
+    return await this.prisma.inboundShipment.create({
       data: {
         ...shipmentData,
         receivingId,
@@ -107,16 +113,16 @@ export class InboundService {
           },
         },
       },
-    })
+    });
   }
 
   async update(id: string, updateInboundShipmentDto: UpdateInboundShipmentDto) {
-    await this.findOne(id) // Check if exists
+    await this.findOne(id); // Check if exists
 
     // Exclude 'items' from update if present
-    const { items, ...shipmentData } = updateInboundShipmentDto
+    const { items, ...shipmentData } = updateInboundShipmentDto;
 
-    return this.prisma.inboundShipment.update({
+    return await this.prisma.inboundShipment.update({
       where: { id },
       data: shipmentData,
       include: {
@@ -126,17 +132,17 @@ export class InboundService {
           },
         },
       },
-    })
+    });
   }
 
   async markAsReceived(id: string) {
-    const shipment = await this.findOne(id)
+    const shipment = await this.findOne(id);
 
     // Update shipment status and received date
     const updatedShipment = await this.prisma.inboundShipment.update({
       where: { id },
       data: {
-        status: "RECEIVED",
+        status: 'RECEIVED',
         receivedDate: new Date(),
       },
       include: {
@@ -146,21 +152,21 @@ export class InboundService {
           },
         },
       },
-    })
+    });
 
     // Update inventory for each item
     for (const item of shipment.items) {
-      await this.updateInventoryFromReceipt(item)
+      await this.updateInventoryFromReceipt(item);
     }
 
-    return updatedShipment
+    return updatedShipment;
   }
 
   async getPendingReceipts() {
-    return this.prisma.inboundShipment.findMany({
+    return await this.prisma.inboundShipment.findMany({
       where: {
         status: {
-          in: ["SCHEDULED", "IN_TRANSIT"],
+          in: ['SCHEDULED', 'IN_TRANSIT'],
         },
       },
       include: {
@@ -170,17 +176,17 @@ export class InboundService {
           },
         },
       },
-      orderBy: { expectedDate: "asc" },
-    })
+      orderBy: { expectedDate: 'asc' },
+    });
   }
 
   private async generateReceivingId(): Promise<string> {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, "0")
-    const day = String(today.getDate()).padStart(2, "0")
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
 
-    const prefix = `RCV-${year}${month}${day}`
+    const prefix = `RCV-${year}${month}${day}`;
 
     const lastShipment = await this.prisma.inboundShipment.findFirst({
       where: {
@@ -189,17 +195,19 @@ export class InboundService {
         },
       },
       orderBy: {
-        receivingId: "desc",
+        receivingId: 'desc',
       },
-    })
+    });
 
-    let sequence = 1
+    let sequence = 1;
     if (lastShipment) {
-      const lastSequence = Number.parseInt(lastShipment.receivingId.split("-")[1].slice(-3))
-      sequence = lastSequence + 1
+      const lastSequence = Number.parseInt(
+        lastShipment.receivingId.split('-')[1].slice(-3),
+      );
+      sequence = lastSequence + 1;
     }
 
-    return `${prefix}-${String(sequence).padStart(3, "0")}`
+    return `${prefix}-${String(sequence).padStart(3, '0')}`;
   }
 
   private async updateInventoryFromReceipt(item: any) {
@@ -208,7 +216,7 @@ export class InboundService {
       where: {
         productId: item.productId,
       },
-    })
+    });
 
     if (existingInventory) {
       // Update existing inventory
@@ -223,11 +231,11 @@ export class InboundService {
           },
           lastCounted: new Date(),
         },
-      })
+      });
     } else {
       // Create new inventory record
-      const warehouses = await this.prisma.warehouse.findMany()
-      const defaultWarehouse = warehouses[0] // Use first warehouse as default
+      const warehouses = await this.prisma.warehouse.findMany();
+      const defaultWarehouse = warehouses[0]; // Use first warehouse as default
 
       if (defaultWarehouse) {
         await this.prisma.inventory.create({
@@ -238,7 +246,7 @@ export class InboundService {
             quantityTotal: item.quantityExpected,
             lastCounted: new Date(),
           },
-        })
+        });
       }
     }
 
@@ -246,13 +254,14 @@ export class InboundService {
     await this.prisma.inventoryAdjustment.create({
       data: {
         productId: item.productId,
-        warehouseId: existingInventory?.warehouseId || "",
-        adjustmentType: "increase",
+        warehouseId: existingInventory?.warehouseId || '',
+        adjustmentType: 'increase',
         quantityBefore: existingInventory?.quantityAvailable || 0,
-        quantityAfter: (existingInventory?.quantityAvailable || 0) + item.quantityExpected,
+        quantityAfter:
+          (existingInventory?.quantityAvailable || 0) + item.quantityExpected,
         quantityChange: item.quantityExpected,
         reason: `Inbound receipt: ${item.product.name}`,
       },
-    })
+    });
   }
 }

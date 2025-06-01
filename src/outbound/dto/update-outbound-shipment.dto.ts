@@ -1,39 +1,39 @@
-import { IsOptional, IsString, IsEnum, IsDateString } from "class-validator"
-import { ApiProperty } from "@nestjs/swagger"
-import { OutboundStatus } from "@prisma/client"
+import { IsOptional, IsString, IsEnum, IsDateString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { OutboundStatus } from '@prisma/client';
 
 export class UpdateOutboundShipmentDto {
-  @ApiProperty({ description: "Carrier name", required: false })
+  @ApiProperty({ description: 'Carrier name', required: false })
   @IsOptional()
   @IsString()
-  carrier?: string
+  carrier?: string;
 
-  @ApiProperty({ description: "Tracking number", required: false })
+  @ApiProperty({ description: 'Tracking number', required: false })
   @IsOptional()
   @IsString()
-  trackingNumber?: string
+  trackingNumber?: string;
 
   @ApiProperty({
-    description: "Shipment status",
+    description: 'Shipment status',
     enum: OutboundStatus,
     required: false,
   })
   @IsOptional()
   @IsEnum(OutboundStatus)
-  status?: OutboundStatus
+  status?: OutboundStatus;
 
-  @ApiProperty({ description: "Picker ID", required: false })
+  @ApiProperty({ description: 'Picker ID', required: false })
   @IsOptional()
   @IsString()
-  pickerId?: string
+  pickerId?: string;
 
-  @ApiProperty({ description: "Packed by user ID", required: false })
+  @ApiProperty({ description: 'Packed by user ID', required: false })
   @IsOptional()
   @IsString()
-  packedBy?: string
+  packedBy?: string;
 
-  @ApiProperty({ description: "Estimated delivery date", required: false })
+  @ApiProperty({ description: 'Estimated delivery date', required: false })
   @IsOptional()
   @IsDateString()
-  estimatedDelivery?: string
+  estimatedDelivery?: string;
 }

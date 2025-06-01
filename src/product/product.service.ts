@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ProductService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
   async create(dto: CreateProductDto) {
     // Agar foydalanuvchi sku bermasa, avtomatik generatsiya qilinadi
     const sku = this.generateSku();

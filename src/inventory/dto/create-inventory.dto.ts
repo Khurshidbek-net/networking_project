@@ -1,28 +1,32 @@
-import { IsString, IsInt, IsOptional, Min } from "class-validator"
-import { ApiProperty } from "@nestjs/swagger"
+import { IsString, IsInt, IsOptional, Min } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateInventoryDto {
-  @ApiProperty({ description: "Product ID" })
+  @ApiProperty({ description: 'Product ID' })
   @IsString()
-  productId: string
+  productId: string;
 
-  @ApiProperty({ description: "Warehouse ID" })
+  @ApiProperty({ description: 'Warehouse ID' })
   @IsString()
-  warehouseId: string
+  warehouseId: string;
 
-  @ApiProperty({ description: "Storage location", required: false })
+  @ApiProperty({ description: 'Storage location', required: false })
   @IsOptional()
   @IsString()
-  location?: string
+  location?: string;
 
-  @ApiProperty({ description: "Available quantity", minimum: 0 })
+  @ApiProperty({ description: 'Available quantity', minimum: 0 })
   @IsInt()
   @Min(0)
-  quantityAvailable: number
+  quantityAvailable: number;
 
-  @ApiProperty({ description: "Reserved quantity", minimum: 0, required: false })
+  @ApiProperty({
+    description: 'Reserved quantity',
+    minimum: 0,
+    required: false,
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
-  quantityReserved?: number
+  quantityReserved?: number;
 }

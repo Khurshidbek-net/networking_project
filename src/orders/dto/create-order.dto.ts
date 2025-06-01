@@ -8,69 +8,69 @@ import {
   IsNumber,
   IsDateString,
   Min,
-} from "class-validator"
-import { Type } from "class-transformer"
-import { ApiProperty } from "@nestjs/swagger"
-import { OrderPriority } from "@prisma/client"
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
+import { OrderPriority } from '@prisma/client';
 
 class CreateOrderItemDto {
-  @ApiProperty({ description: "Product ID" })
+  @ApiProperty({ description: 'Product ID' })
   @IsString()
-  productId: string
+  productId: string;
 
-  @ApiProperty({ description: "Quantity ordered", minimum: 1 })
+  @ApiProperty({ description: 'Quantity ordered', minimum: 1 })
   @IsNumber()
   @Min(1)
-  quantityOrdered: number
+  quantityOrdered: number;
 
-  @ApiProperty({ description: "Unit price" })
+  @ApiProperty({ description: 'Unit price' })
   @IsNumber()
   @Min(0)
-  unitPrice: number
+  unitPrice: number;
 }
 
 export class CreateOrderDto {
-  @ApiProperty({ description: "Customer name" })
+  @ApiProperty({ description: 'Customer name' })
   @IsString()
-  customerName: string
+  customerName: string;
 
-  @ApiProperty({ description: "Customer email", required: false })
+  @ApiProperty({ description: 'Customer email', required: false })
   @IsOptional()
   @IsEmail()
-  customerEmail?: string
+  customerEmail?: string;
 
-  @ApiProperty({ description: "Customer phone", required: false })
+  @ApiProperty({ description: 'Customer phone', required: false })
   @IsOptional()
   @IsString()
-  customerPhone?: string
+  customerPhone?: string;
 
-  @ApiProperty({ description: "Shipping address", required: false })
+  @ApiProperty({ description: 'Shipping address', required: false })
   @IsOptional()
-  shippingAddress?: any
+  shippingAddress?: any;
 
   @ApiProperty({
-    description: "Order priority",
+    description: 'Order priority',
     enum: OrderPriority,
     required: false,
     default: OrderPriority.MEDIUM,
   })
   @IsOptional()
   @IsEnum(OrderPriority)
-  priority?: OrderPriority
+  priority?: OrderPriority;
 
-  @ApiProperty({ description: "Due date", required: false })
+  @ApiProperty({ description: 'Due date', required: false })
   @IsOptional()
   @IsDateString()
-  dueDate?: string
+  dueDate?: string;
 
-  @ApiProperty({ description: "Order notes", required: false })
+  @ApiProperty({ description: 'Order notes', required: false })
   @IsOptional()
   @IsString()
-  notes?: string
+  notes?: string;
 
-  @ApiProperty({ description: "Order items", type: [CreateOrderItemDto] })
+  @ApiProperty({ description: 'Order items', type: [CreateOrderItemDto] })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
-  orderItems: CreateOrderItemDto[]
+  orderItems: CreateOrderItemDto[];
 }

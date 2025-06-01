@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class WarehouseService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
   async create(createWarehouseDto: CreateWarehouseDto) {
     return this.prisma.warehouse.create({
       data: {
@@ -30,11 +30,11 @@ export class WarehouseService {
     return await this.prisma.warehouse.update({
       where: { id },
       data: updateWarehouseDto,
-    })
+    });
   }
 
   async remove(id: string) {
-    await this.findOne(id)
-    return await this.prisma.warehouse.delete({ where: { id } })
+    await this.findOne(id);
+    return await this.prisma.warehouse.delete({ where: { id } });
   }
 }

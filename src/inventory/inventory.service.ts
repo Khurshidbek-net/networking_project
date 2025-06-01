@@ -1,35 +1,35 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
-import  { PrismaService } from "../prisma/prisma.service"
-import  { CreateInventoryDto } from "./dto/create-inventory.dto"
-import  { UpdateInventoryDto } from "./dto/update-inventory.dto"
-import  { AdjustInventoryDto } from "./dto/adjust-inventory.dto"
-import  { InventoryQueryDto } from "./dto/inventory-query.dto"
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateInventoryDto } from './dto/create-inventory.dto';
+import { UpdateInventoryDto } from './dto/update-inventory.dto';
+import { AdjustInventoryDto } from './dto/adjust-inventory.dto';
+import { InventoryQueryDto } from './dto/inventory-query.dto';
 
 @Injectable()
 export class InventoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(query: InventoryQueryDto) {
-    const { page = 1, limit = 10, search, warehouseId, lowStock } = query || {}
-    const skip = (page - 1) * limit
+    const { page = 1, limit = 10, search, warehouseId, lowStock } = query || {};
+    const skip = (page - 1) * limit;
 
-    const where: any = {}
+    const where: any = {};
 
     if (search) {
       where.OR = [
-        { product: { name: { contains: search, mode: "insensitive" } } },
-        { product: { sku: { contains: search, mode: "insensitive" } } },
-      ]
+        { product: { name: { contains: search, mode: 'insensitive' } } },
+        { product: { sku: { contains: search, mode: 'insensitive' } } },
+      ];
     }
 
     if (warehouseId) {
-      where.warehouseId = warehouseId
+      where.warehouseId = warehouseId;
     }
 
     if (lowStock) {
       where.quantityAvailable = {
         lte: this.prisma.inventory.fields.quantityAvailable,
-      }
+      };
     }
 
     const [items, total] = await Promise.all([
@@ -45,10 +45,10 @@ export class InventoryService {
         },
         skip,
         take: limit,
-        orderBy: { updatedAt: "desc" },
+        orderBy: { updatedAt: 'desc' },
       }),
       this.prisma.inventory.count({ where }),
-    ])
+    ]);
 
     return {
       items,
@@ -58,7 +58,7 @@ export class InventoryService {
         total,
         pages: Math.ceil(total / limit),
       },
-    }
+    };
   }
 
   async findOne(id: string) {
@@ -72,39 +72,46 @@ export class InventoryService {
         },
         warehouse: true,
       },
-    })
+    });
 
     if (!inventory) {
-      throw new NotFoundException(`Inventory item with ID ${id} not found`)
+      throw new NotFoundException(`Inventory item with ID ${id} not found`);
     }
 
-    return inventory
+    return inventory;
   }
 
   async create(createInventoryDto: CreateInventoryDto) {
-    return this.prisma.inventory.create({
+    return await this.prisma.inventory.create({
       data: {
         ...createInventoryDto,
-        quantityTotal: createInventoryDto.quantityAvailable + (createInventoryDto.quantityReserved || 0),
+        quantityTotal:
+          createInventoryDto.quantityAvailable +
+          (createInventoryDto.quantityReserved || 0),
       },
       include: {
         product: true,
         warehouse: true,
       },
-    })
+    });
   }
 
   async update(id: string, updateInventoryDto: UpdateInventoryDto) {
-    const inventory = await this.findOne(id)
+    const inventory = await this.findOne(id);
 
     const updatedData = {
       ...updateInventoryDto,
-    }
+    };
 
-    if (updateInventoryDto.quantityAvailable !== undefined || updateInventoryDto.quantityReserved !== undefined) {
-      const quantityAvailable = updateInventoryDto.quantityAvailable ?? inventory.quantityAvailable
-      const quantityReserved = updateInventoryDto.quantityReserved ?? inventory.quantityReserved
-      updatedData.quantityAvailable = quantityAvailable + quantityReserved
+    if (
+      updateInventoryDto.quantityAvailable !== undefined ||
+      updateInventoryDto.quantityReserved !== undefined
+    ) {
+      const quantityAvailable =
+        updateInventoryDto.quantityAvailable ?? inventory.quantityAvailable;
+      const quantityReserved =
+        updateInventoryDto.quantityReserved ?? inventory.quantityReserved;
+      updatedData.quantityAvailable = quantityAvailable + quantityReserved;
     }
 
     return this.prisma.inventory.update({
@@ -114,11 +121,12 @@ export class InventoryService {
         product: true,
         warehouse: true,
       },
-    })
+    });
   }
 
   async adjustInventory(adjustInventoryDto: AdjustInventoryDto) {
-    const { productId, warehouseId, adjustmentType, quantity, reason, userId } = adjustInventoryDto
+    const { productId, warehouseId, adjustmentType, quantity, reason, userId } =
+      adjustInventoryDto;
 
     // Find inventory item
     const inventory = await this.prisma.inventory.findFirst({
@@ -126,30 +134,30 @@ export class InventoryService {
         productId,
         warehouseId,
       },
-    })
+    });
 
     if (!inventory) {
-      throw new NotFoundException("Inventory item not found")
+      throw new NotFoundException('Inventory item not found');
     }
 
-    const quantityBefore = inventory.quantityAvailable
-    let quantityAfter: number
+    const quantityBefore = inventory.quantityAvailable;
+    let quantityAfter: number;
 
     switch (adjustmentType) {
-      case "increase":
-        quantityAfter = quantityBefore + quantity
-        break
-      case "decrease":
-        quantityAfter = Math.max(0, quantityBefore - quantity)
-        break
-      case "count":
-        quantityAfter = quantity
-        break
+      case 'increase':
+        quantityAfter = quantityBefore + quantity;
+        break;
+      case 'decrease':
+        quantityAfter = Math.max(0, quantityBefore - quantity);
+        break;
+      case 'count':
+        quantityAfter = quantity;
+        break;
       default:
-        throw new Error("Invalid adjustment type")
+        throw new Error('Invalid adjustment type');
     }
 
-    const quantityChange = quantityAfter - quantityBefore
+    const quantityChange = quantityAfter - quantityBefore;
 
     // Update inventory and create adjustment record in transaction
     const result = await this.prisma.$transaction([
@@ -173,12 +181,12 @@ export class InventoryService {
           userId,
         },
       }),
-    ])
+    ]);
 
     return {
       inventory: result[0],
       adjustment: result[1],
-    }
+    };
   }
 
   async getLowStockAlerts() {
@@ -196,16 +204,24 @@ export class InventoryService {
         },
         warehouse: true,
       },
-    })
+    });
 
     // Filter items where available quantity is less than or equal to minimum stock
-    const filteredItems = lowStockItems.filter((item) => item.quantityAvailable <= (item.product.minimumStock || 0))
+    const filteredItems = lowStockItems.filter(
+      (item) => item.quantityAvailable <= (item.product.minimumStock || 0),
+    );
 
-    return filteredItems
+    return filteredItems;
   }
 
   async getAnalytics() {
-    const [totalItems, lowStockCount, totalValue, topMovingProducts, warehouseUtilization] = await Promise.all([
+    const [
+      totalItems,
+      lowStockCount,
+      totalValue,
+      topMovingProducts,
+      warehouseUtilization,
+    ] = await Promise.all([
       this.prisma.inventory.count(),
       this.getLowStockAlerts().then((items) => items.length),
       this.prisma.inventory.aggregate({
@@ -218,7 +234,7 @@ export class InventoryService {
           product: true,
         },
         orderBy: {
-          quantityTotal: "desc",
+          quantityTotal: 'desc',
         },
         take: 5,
       }),
@@ -227,7 +243,7 @@ export class InventoryService {
           inventory: true,
         },
       }),
-    ])
+    ]);
 
     return {
       totalItems,
@@ -242,16 +258,18 @@ export class InventoryService {
         name: warehouse.name,
         utilization:
           warehouse.usedCapacity && warehouse.totalCapacity
-            ? Math.round((warehouse.usedCapacity / warehouse.totalCapacity) * 100)
+            ? Math.round(
+                (warehouse.usedCapacity / warehouse.totalCapacity) * 100,
+              )
             : 0,
       })),
-    }
+    };
   }
 
   async remove(id: string) {
-    await this.findOne(id) // Check if exists
-    return this.prisma.inventory.delete({
+    await this.findOne(id); // Check if exists
+    return await this.prisma.inventory.delete({
       where: { id },
-    })
+    });
   }
 }

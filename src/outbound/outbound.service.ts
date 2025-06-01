@@ -1,29 +1,29 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
-import  { PrismaService } from "../prisma/prisma.service"
-import  { CreatePickListDto } from "./dto/create-pick-list.dto"
-import  { UpdateOutboundShipmentDto } from "./dto/update-outbound-shipment.dto"
-import  { OutboundQueryDto } from "./dto/outbound-query.dto"
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreatePickListDto } from './dto/create-pick-list.dto';
+import { UpdateOutboundShipmentDto } from './dto/update-outbound-shipment.dto';
+import { OutboundQueryDto } from './dto/outbound-query.dto';
 
 @Injectable()
 export class OutboundService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(query: OutboundQueryDto) {
-    const { page = 1, limit = 10, search, status } = query || {}
-    const skip = (page - 1) * limit
+    const { page = 1, limit = 10, search, status } = query || {};
+    const skip = (page - 1) * limit;
 
-    const where: any = {}
+    const where: any = {};
 
     if (search) {
       where.OR = [
-        { shipmentId: { contains: search, mode: "insensitive" } },
-        { order: { orderNumber: { contains: search, mode: "insensitive" } } },
-        { order: { customerName: { contains: search, mode: "insensitive" } } },
-      ]
+        { shipmentId: { contains: search, mode: 'insensitive' } },
+        { order: { orderNumber: { contains: search, mode: 'insensitive' } } },
+        { order: { customerName: { contains: search, mode: 'insensitive' } } },
+      ];
     }
 
     if (status) {
-      where.status = status
+      where.status = status;
     }
 
     const [items, total] = await Promise.all([
@@ -42,10 +42,10 @@ export class OutboundService {
         },
         skip,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.outboundShipment.count({ where }),
-    ])
+    ]);
 
     return {
       items,
@@ -55,7 +55,7 @@ export class OutboundService {
         total,
         pages: Math.ceil(total / limit),
       },
-    }
+    };
   }
 
   async findOne(id: string) {
@@ -77,17 +77,17 @@ export class OutboundService {
           },
         },
       },
-    })
+    });
 
     if (!shipment) {
-      throw new NotFoundException(`Outbound shipment with ID ${id} not found`)
+      throw new NotFoundException(`Outbound shipment with ID ${id} not found`);
     }
 
-    return shipment
+    return shipment;
   }
 
   async generatePickList(createPickListDto: CreatePickListDto) {
-    const { orderId } = createPickListDto
+    const { orderId } = createPickListDto;
 
     // Check if order exists
     const order = await this.prisma.order.findUnique({
@@ -103,21 +103,21 @@ export class OutboundService {
           },
         },
       },
-    })
+    });
 
     if (!order) {
-      throw new NotFoundException(`Order with ID ${orderId} not found`)
+      throw new NotFoundException(`Order with ID ${orderId} not found`);
     }
 
     // Generate shipment ID
-    const shipmentId = await this.generateShipmentId()
+    const shipmentId = await this.generateShipmentId();
 
     // Create outbound shipment
     const outboundShipment = await this.prisma.outboundShipment.create({
       data: {
         shipmentId,
         orderId,
-        status: "PICKING",
+        status: 'PICKING',
       },
       include: {
         order: {
@@ -134,31 +134,34 @@ export class OutboundService {
           },
         },
       },
-    })
+    });
 
     // Generate pick list with locations
     const pickList = order.orderItems.map((item) => {
-      const inventory = item.product.inventory[0] // Get first inventory location
+      const inventory = item.product.inventory[0]; // Get first inventory location
       return {
         productId: item.productId,
         sku: item.product.sku,
         name: item.product.name,
         quantityOrdered: item.quantityOrdered,
-        location: inventory?.location || "Unknown",
+        location: inventory?.location || 'Unknown',
         available: inventory?.quantityAvailable || 0,
-      }
-    })
+      };
+    });
 
     return {
       shipment: outboundShipment,
       pickList,
-    }
+    };
   }
 
-  async update(id: string, updateOutboundShipmentDto: UpdateOutboundShipmentDto) {
-    await this.findOne(id) // Check if exists
+  async update(
+    id: string,
+    updateOutboundShipmentDto: UpdateOutboundShipmentDto,
+  ) {
+    await this.findOne(id); // Check if exists
 
-    return this.prisma.outboundShipment.update({
+    return await this.prisma.outboundShipment.update({
       where: { id },
       data: updateOutboundShipmentDto,
       include: {
@@ -172,13 +175,13 @@ export class OutboundService {
           },
         },
       },
-    })
+    });
   }
 
   async updatePickingStatus(id: string, pickerId: string, status: string) {
-    const shipment = await this.findOne(id)
+    // const shipment = await this.findOne(id);
 
-    return this.prisma.outboundShipment.update({
+    return await this.prisma.outboundShipment.update({
       where: { id },
       data: {
         pickerId,
@@ -188,16 +191,16 @@ export class OutboundService {
       include: {
         order: true,
       },
-    })
+    });
   }
 
   async markAsShipped(id: string, carrier: string, trackingNumber: string) {
-    const shipment = await this.findOne(id)
+    const shipment = await this.findOne(id);
 
     const updatedShipment = await this.prisma.outboundShipment.update({
       where: { id },
       data: {
-        status: "SHIPPED",
+        status: 'SHIPPED',
         carrier,
         trackingNumber,
         shippedDate: new Date(),
@@ -210,27 +213,27 @@ export class OutboundService {
           },
         },
       },
-    })
+    });
 
     // Update order status to completed
     await this.prisma.order.update({
       where: { id: shipment.orderId },
       data: {
-        status: "COMPLETED",
+        status: 'COMPLETED',
         updatedAt: new Date(),
       },
-    })
+    });
 
-    return updatedShipment
+    return updatedShipment;
   }
 
   private async generateShipmentId(): Promise<string> {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, "0")
-    const day = String(today.getDate()).padStart(2, "0")
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
 
-    const prefix = `SHP-${year}${month}${day}`
+    const prefix = `SHP-${year}${month}${day}`;
 
     const lastShipment = await this.prisma.outboundShipment.findFirst({
       where: {
@@ -239,16 +242,18 @@ export class OutboundService {
         },
       },
       orderBy: {
-        shipmentId: "desc",
+        shipmentId: 'desc',
       },
-    })
+    });
 
-    let sequence = 1
+    let sequence = 1;
     if (lastShipment) {
-      const lastSequence = Number.parseInt(lastShipment.shipmentId.split("-")[1].slice(-3))
-      sequence = lastSequence + 1
+      const lastSequence = Number.parseInt(
+        lastShipment.shipmentId.split('-')[1].slice(-3),
+      );
+      sequence = lastSequence + 1;
     }
 
-    return `${prefix}-${String(sequence).padStart(3, "0")}`
+    return `${prefix}-${String(sequence).padStart(3, '0')}`;
   }
 }

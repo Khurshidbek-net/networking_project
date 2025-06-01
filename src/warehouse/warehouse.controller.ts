@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Put,
+} from '@nestjs/common';
 import { WarehouseService } from './warehouse.service';
 import { CreateWarehouseDto } from './dto/create-warehouse.dto';
 import { UpdateWarehouseDto } from './dto/update-warehouse.dto';
@@ -9,7 +17,7 @@ export class WarehouseController {
 
   @Post()
   create(@Body() createWarehouseDto: CreateWarehouseDto) {
-    console.log(createWarehouseDto)
+    console.log(createWarehouseDto);
     return this.warehouseService.create(createWarehouseDto);
   }
 
@@ -24,7 +32,10 @@ export class WarehouseController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateWarehouseDto: UpdateWarehouseDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateWarehouseDto: UpdateWarehouseDto,
+  ) {
     return this.warehouseService.update(id, updateWarehouseDto);
   }
 

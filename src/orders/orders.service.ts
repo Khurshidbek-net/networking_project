@@ -1,34 +1,38 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common"
-import { PrismaService } from "../prisma/prisma.service"
-import { CreateOrderDto } from "./dto/create-order.dto"
-import { UpdateOrderDto } from "./dto/update-order.dto"
-import { OrderQueryDto } from "./dto/order-query.dto"
-import { OrderStatus } from "@prisma/client"
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
+import { OrderQueryDto } from './dto/order-query.dto';
+import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async findAll(query: OrderQueryDto) {
-    const { page = 1, limit = 10, search, status, priority } = query || {}
-    const skip = (page - 1) * limit
+    const { page = 1, limit = 10, search, status, priority } = query || {};
+    const skip = (page - 1) * limit;
 
-    const where: any = {}
+    const where: any = {};
 
     if (search) {
       where.OR = [
-        { orderNumber: { contains: search, mode: "insensitive" } },
-        { customerName: { contains: search, mode: "insensitive" } },
-        { customerEmail: { contains: search, mode: "insensitive" } },
-      ]
+        { orderNumber: { contains: search, mode: 'insensitive' } },
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { customerEmail: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
     if (status) {
-      where.status = status
+      where.status = status;
     }
 
     if (priority) {
-      where.priority = priority
+      where.priority = priority;
     }
 
     const [items, total] = await Promise.all([
@@ -44,10 +48,10 @@ export class OrdersService {
         },
         skip,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.order.count({ where }),
-    ])
+    ]);
 
     return {
       items,
@@ -57,7 +61,7 @@ export class OrdersService {
         total,
         pages: Math.ceil(total / limit),
       },
-    }
+    };
   }
 
   async findOne(id: string) {
@@ -76,21 +80,24 @@ export class OrdersService {
         outboundShipments: true,
         inventoryReservations: true,
       },
-    })
+    });
 
     if (!order) {
-      throw new NotFoundException(`Order with ID ${id} not found`)
+      throw new NotFoundException(`Order with ID ${id} not found`);
     }
 
-    return order
+    return order;
   }
 
   async create(createOrderDto: CreateOrderDto) {
-    const { orderItems, ...orderData } = createOrderDto
+    const { orderItems, ...orderData } = createOrderDto;
 
-    const orderNumber = await this.generateOrderNumber()
+    const orderNumber = await this.generateOrderNumber();
 
-    const totalValue = orderItems.reduce((sum, item) => sum + item.quantityOrdered * item.unitPrice, 0)
+    const totalValue = orderItems.reduce(
+      (sum, item) => sum + item.quantityOrdered * item.unitPrice,
+      0,
+    );
 
     const order = await this.prisma.order.create({
       data: {
@@ -112,25 +119,28 @@ export class OrdersService {
           },
         },
       },
-    })
+    });
 
-    await this.reserveInventoryForOrder(order.id)
+    await this.reserveInventoryForOrder(order.id);
 
-    return order
+    return order;
   }
 
   async update(id: string, updateOrderDto: UpdateOrderDto) {
-    await this.findOne(id)
+    await this.findOne(id);
 
-    const { orderItems, ...orderData } = updateOrderDto
-    const updateData: any = orderData
+    const { orderItems, ...orderData } = updateOrderDto;
+    const updateData: any = orderData;
 
     if (orderItems) {
-      const totalValue = orderItems.reduce((sum, item) => sum + item.quantityOrdered * item.unitPrice, 0)
-      updateData.totalValue = totalValue
+      const totalValue = orderItems.reduce(
+        (sum, item) => sum + item.quantityOrdered * item.unitPrice,
+        0,
+      );
+      updateData.totalValue = totalValue;
     }
 
-    return this.prisma.order.update({
+    return await this.prisma.order.update({
       where: { id },
       data: updateData,
       include: {
@@ -140,14 +150,14 @@ export class OrdersService {
           },
         },
       },
-    })
+    });
   }
 
-  async updateStatus(id: string, newStatus: string, userId?: string) {
-    const order = await this.findOne(id)
+  async updateStatus(id: string, newStatus: string) {
+    const order = await this.findOne(id);
 
     if (!Object.values(OrderStatus).includes(newStatus as OrderStatus)) {
-      throw new BadRequestException("Invalid order status")
+      throw new BadRequestException('Invalid order status');
     }
 
     const updatedOrder = await this.prisma.order.update({
@@ -163,38 +173,44 @@ export class OrdersService {
           },
         },
       },
-    })
+    });
 
     switch (newStatus) {
       case OrderStatus.PROCESSING:
-        await this.createOutboundShipment(id)
-        break
+        await this.createOutboundShipment(id);
+        break;
       case OrderStatus.COMPLETED:
-        await this.completeOrder(id)
-        break
+        await this.completeOrder(id);
+        break;
       case OrderStatus.CANCELLED:
-        await this.cancelOrder(id)
-        break
+        await this.cancelOrder(id);
+        break;
     }
 
-    return updatedOrder
+    return updatedOrder;
   }
 
   async remove(id: string) {
-    await this.findOne(id)
+    await this.findOne(id);
 
-    await this.releaseInventoryReservations(id)
+    await this.releaseInventoryReservations(id);
 
     return this.prisma.order.delete({
       where: { id },
-    })
+    });
   }
 
   async getAnalytics() {
-    const [totalOrders, ordersByStatus, totalValue, averageOrderValue, topCustomers] = await Promise.all([
+    const [
+      totalOrders,
+      ordersByStatus,
+      totalValue,
+      averageOrderValue,
+      topCustomers,
+    ] = await Promise.all([
       this.prisma.order.count(),
       this.prisma.order.groupBy({
-        by: ["status"],
+        by: ['status'],
         _count: {
           status: true,
         },
@@ -210,7 +226,7 @@ export class OrdersService {
         },
       }),
       this.prisma.order.groupBy({
-        by: ["customerName"],
+        by: ['customerName'],
         _count: {
           customerName: true,
         },
@@ -219,18 +235,18 @@ export class OrdersService {
         },
         orderBy: {
           _count: {
-            customerName: "desc",
+            customerName: 'desc',
           },
         },
         take: 5,
       }),
-    ])
+    ]);
 
     return {
       totalOrders,
       ordersByStatus: ordersByStatus.reduce((acc, item) => {
-        acc[item.status] = item._count.status
-        return acc
+        acc[item.status] = item._count.status;
+        return acc;
       }, {}),
       totalValue: totalValue._sum.totalValue || 0,
       averageOrderValue: averageOrderValue._avg.totalValue || 0,
@@ -239,16 +255,16 @@ export class OrdersService {
         orderCount: customer._count.customerName,
         totalValue: customer._sum.totalValue || 0,
       })),
-    }
+    };
   }
 
   private async generateOrderNumber(): Promise<string> {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, "0")
-    const day = String(today.getDate()).padStart(2, "0")
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
 
-    const prefix = `ORD-${year}${month}${day}`
+    const prefix = `ORD-${year}${month}${day}`;
 
     const lastOrder = await this.prisma.order.findFirst({
       where: {
@@ -257,17 +273,19 @@ export class OrdersService {
         },
       },
       orderBy: {
-        orderNumber: "desc",
+        orderNumber: 'desc',
       },
-    })
+    });
 
-    let sequence = 1
+    let sequence = 1;
     if (lastOrder) {
-      const lastSequence = Number.parseInt(lastOrder.orderNumber.split("-")[1].slice(-3))
-      sequence = lastSequence + 1
+      const lastSequence = Number.parseInt(
+        lastOrder.orderNumber.split('-')[1].slice(-3),
+      );
+      sequence = lastSequence + 1;
     }
 
-    return `${prefix}-${String(sequence).padStart(3, "0")}`
+    return `${prefix}-${String(sequence).padStart(3, '0')}`;
   }
 
   private async reserveInventoryForOrder(orderId: string) {
@@ -276,20 +294,20 @@ export class OrdersService {
       include: {
         orderItems: true,
       },
-    })
+    });
 
-    if (!order) return
+    if (!order) return;
 
     const reservations = order.orderItems.map((item) => ({
       productId: item.productId,
       orderId: orderId,
       quantityReserved: item.quantityOrdered,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    }))
+    }));
 
     await this.prisma.inventoryReservation.createMany({
       data: reservations,
-    })
+    });
 
     for (const item of order.orderItems) {
       await this.prisma.inventory.updateMany({
@@ -301,20 +319,20 @@ export class OrdersService {
             increment: item.quantityOrdered,
           },
         },
-      })
+      });
     }
   }
 
   private async createOutboundShipment(orderId: string) {
-    const shipmentId = `SHP-${Date.now()}`
+    const shipmentId = `SHP-${Date.now()}`;
 
     await this.prisma.outboundShipment.create({
       data: {
         shipmentId,
         orderId,
-        status: "PICKING",
+        status: 'PICKING',
       },
-    })
+    });
   }
 
   private async completeOrder(orderId: string) {
@@ -323,9 +341,9 @@ export class OrdersService {
       include: {
         orderItems: true,
       },
-    })
+    });
 
-    if (!order) return
+    if (!order) return;
 
     for (const item of order.orderItems) {
       await this.prisma.inventory.updateMany({
@@ -343,31 +361,31 @@ export class OrdersService {
             decrement: item.quantityOrdered,
           },
         },
-      })
+      });
     }
 
     await this.prisma.inventoryReservation.updateMany({
       where: {
         orderId,
-        status: "active",
+        status: 'active',
       },
       data: {
-        status: "fulfilled",
+        status: 'fulfilled',
       },
-    })
+    });
   }
 
   private async cancelOrder(orderId: string) {
-    await this.releaseInventoryReservations(orderId)
+    await this.releaseInventoryReservations(orderId);
   }
 
   private async releaseInventoryReservations(orderId: string) {
     const reservations = await this.prisma.inventoryReservation.findMany({
       where: {
         orderId,
-        status: "active",
+        status: 'active',
       },
-    })
+    });
 
     for (const reservation of reservations) {
       await this.prisma.inventory.updateMany({
@@ -379,17 +397,17 @@ export class OrdersService {
             decrement: reservation.quantityReserved,
           },
         },
-      })
+      });
     }
 
     await this.prisma.inventoryReservation.updateMany({
       where: {
         orderId,
-        status: "active",
+        status: 'active',
       },
       data: {
-        status: "expired",
+        status: 'expired',
       },
-    })
+    });
   }
 }

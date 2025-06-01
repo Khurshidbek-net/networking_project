@@ -1,8 +1,7 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateWarehouseDto {
-
   @IsString()
   @IsNotEmpty()
   @ApiProperty()
@@ -21,7 +20,6 @@ export class CreateWarehouseDto {
   @ApiProperty()
   @IsNumber()
   usedCapacity: number;
-
 
   @ApiProperty()
   @IsNotEmpty()

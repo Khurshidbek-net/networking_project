@@ -1,35 +1,43 @@
-import { Controller, Get, Post, Put, Delete, Body, Param } from "@nestjs/common"
-import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger"
-import { InventoryService } from "./inventory.service"
-import { CreateInventoryDto } from "./dto/create-inventory.dto"
-import { UpdateInventoryDto } from "./dto/update-inventory.dto"
-import { AdjustInventoryDto } from "./dto/adjust-inventory.dto"
-import { InventoryQueryDto } from "./dto/inventory-query.dto"
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { InventoryService } from './inventory.service';
+import { CreateInventoryDto } from './dto/create-inventory.dto';
+import { UpdateInventoryDto } from './dto/update-inventory.dto';
+import { AdjustInventoryDto } from './dto/adjust-inventory.dto';
+import { InventoryQueryDto } from './dto/inventory-query.dto';
 
-@ApiTags("inventory")
-@Controller("api/inventory")
+@ApiTags('inventory')
+@Controller('api/inventory')
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
   @Get()
-  @ApiOperation({ summary: "Get all inventory items" })
-  @ApiResponse({ status: 200, description: "List of inventory items" })
+  @ApiOperation({ summary: 'Get all inventory items' })
+  @ApiResponse({ status: 200, description: 'List of inventory items' })
   async findAll(query: InventoryQueryDto) {
-    return this.inventoryService.findAll(query)
+    return this.inventoryService.findAll(query);
   }
 
-  @Get("low-stock")
-  @ApiOperation({ summary: "Get low stock alerts" })
-  @ApiResponse({ status: 200, description: "List of low stock items" })
+  @Get('low-stock')
+  @ApiOperation({ summary: 'Get low stock alerts' })
+  @ApiResponse({ status: 200, description: 'List of low stock items' })
   async getLowStockAlerts() {
-    return this.inventoryService.getLowStockAlerts()
+    return this.inventoryService.getLowStockAlerts();
   }
 
-  @Get("analytics")
-  @ApiOperation({ summary: "Get inventory analytics" })
-  @ApiResponse({ status: 200, description: "Inventory analytics data" })
+  @Get('analytics')
+  @ApiOperation({ summary: 'Get inventory analytics' })
+  @ApiResponse({ status: 200, description: 'Inventory analytics data' })
   async getAnalytics() {
-    return this.inventoryService.getAnalytics()
+    return this.inventoryService.getAnalytics();
   }
 
   @Get(':id')
@@ -46,11 +54,14 @@ export class InventoryController {
     return this.inventoryService.create(createInventoryDto);
   }
 
-  @Put(":id")
-  @ApiOperation({ summary: "Update inventory item" })
-  @ApiResponse({ status: 200, description: "Inventory item updated" })
-  async update(@Param('id') id: string, @Body() updateInventoryDto: UpdateInventoryDto) {
-    return this.inventoryService.update(id, updateInventoryDto)
+  @Put(':id')
+  @ApiOperation({ summary: 'Update inventory item' })
+  @ApiResponse({ status: 200, description: 'Inventory item updated' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateInventoryDto: UpdateInventoryDto,
+  ) {
+    return this.inventoryService.update(id, updateInventoryDto);
   }
 
   @Post('adjust')
