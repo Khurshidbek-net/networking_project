@@ -25,14 +25,18 @@ FROM node:20-slim
 
 WORKDIR /app
 
+# Install PM2 globally
+RUN npm install pm2 -g
+
 # Copy built assets from builder
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/ecosystem.config.js ./
 
 # Expose port
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application using PM2
+CMD ["pm2-runtime", "start", "ecosystem.config.js"]

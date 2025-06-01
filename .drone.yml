@@ -1,0 +1,72 @@
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  - name: test
+    image: node:20
+    commands:
+      - npm install
+      - npx prisma generate
+      - npm test
+    environment:
+      DATABASE_URL:
+        from_secret: DATABASE_URL
+
+  - name: build
+    image: docker:dind
+    volumes:
+      - name: docker_sock
+        path: /var/run/docker.sock
+    commands:
+      - docker build -t warehouse-app .
+    when:
+      branch:
+        - main
+
+  - name: deploy
+    image: appleboy/drone-scp
+    settings:
+      host:
+        from_secret: EC2_HOST
+      username: ec2-user
+      key_path:
+        from_secret: EC2_PEM_KEY
+      port: 22
+      target: /home/ec2-user/warehouse-app
+      source:
+        - ./*
+        - docker-compose.prod.yml
+      strip_components: 0
+      rm: true
+    when:
+      branch:
+        - main
+
+  - name: remote-deploy
+    image: appleboy/drone-ssh
+    settings:
+      host:
+        from_secret: EC2_HOST
+      username: ec2-user
+      key_path:
+        from_secret: EC2_PEM_KEY
+      port: 22
+      script:
+        - cd /home/ec2-user/warehouse-app
+        - sudo docker-compose -f docker-compose.prod.yml down
+        - sudo docker-compose -f docker-compose.prod.yml up -d --build
+        - sudo docker exec warehouse-app-app-1 npx prisma migrate deploy
+    when:
+      branch:
+        - main
+
+volumes:
+  - name: docker_sock
+    host:
+      path: /var/run/docker.sock
+
+trigger:
+  branch:
+    - main
+    - develop 
