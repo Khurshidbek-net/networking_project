@@ -1,0 +1,9 @@
+config:
+  target: 'http://13.49.70.150:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 20
+scenarios:
+  - flow:
+      - get:
+          url: "/api/products"
